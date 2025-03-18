@@ -13,6 +13,7 @@ import json
 from contextlib import redirect_stdout, redirect_stderr
 from io import StringIO
 import sys
+from typing import Union, List, Dict
 
 from . import utils
 
@@ -460,7 +461,7 @@ def eval_kernel_against_ref(
 
 def register_and_format_exception(
     exception_type: str,
-    exception_msg: Exception | str,
+    exception_msg: Union[Exception,str],
     metadata: dict,
     verbose: bool = False,
     truncate=False,

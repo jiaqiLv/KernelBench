@@ -7,8 +7,10 @@ import os
 import sys
 from datasets import load_dataset
 
-from src import eval as kernel_eval
-from src import utils as kernel_utils
+import src.eval as kernel_eval
+import src.utils as kernel_utils
+# from src import eval as kernel_eval
+# from src import utils as kernel_utils
 from scripts.generate_baseline_time import measure_program_time
 
 from src.utils import read_file
@@ -28,8 +30,7 @@ The Reference could be either
 ====================================================
 Usage:
 1. PyTorch reference is a local file
-python3 scripts/run_and_check.py ref_origin=local ref_arch_src_path=src/prompts/model_ex_add.py kernel_src_path=src/prompts/model_new_ex_add.py
-python scripts/run_and_check.py ref_origin=local ref_arch_src_path=/code/KernelBench/src/prompts/few_shot/model_ex_add.py kernel_src_path=/code/KernelBench/src/prompts/few_shot/model_new_ex_add.py
+python run_and_check_demo.py ref_origin=local ref_arch_src_path=/code/KernelBench/src/prompts/few_shot/model_ex_add.py kernel_src_path=/code/KernelBench/src/prompts/few_shot/model_new_ex_add.py
 
 2. PyTorch refernece is a kernelbench problem
 python3 scripts/run_and_check.py ref_origin=kernelbench level=<level> problem_id=<problem_id> kernel_src_path=<path to model-generated kernel>
@@ -48,13 +49,13 @@ class ScriptConfig():
         # self.ref_origin = REQUIRED # either local or kernelbench
         self.ref_origin = 'local' # either local or kernelbench
         # ref_origin is local, specify local file path
-        self.ref_arch_src_path = ""
+        self.ref_arch_src_path = "/code/KernelBench/src/prompts/few_shot/model_ex_add.py"
         # ref_origin is kernelbench, specify level and problem id
         self.dataset_name = "ScalingIntelligence/KernelBench"
         self.level = ""
         self.problem_id = ""
         # Solution src definition
-        self.kernel_src_path = ""
+        self.kernel_src_path = "/code/KernelBench/src/prompts/few_shot/model_new_ex_add.py"
 
 
         # KernelBench Eval specific
@@ -71,10 +72,10 @@ class ScriptConfig():
         self.clear_cache = False # TODO
 
         # Replace with your NVIDIA GPU architecture, e.g. ["Hopper"]
-        self.gpu_arch = ["Ada"] 
+        self.gpu_arch = ["Ampere"] 
 
-    def __repr__(self):
-        return f"ScriptConfig({self.to_dict()})"
+    # def __repr__(self):
+    #     return f"ScriptConfig({self.to_dict()})"
 
 def evaluate_single_sample_src(ref_arch_src: str, kernel_src: str, configs: dict, device: torch.device) -> kernel_eval.KernelExecResult:
     """
@@ -125,10 +126,10 @@ def evaluate_single_sample_src(ref_arch_src: str, kernel_src: str, configs: dict
             return eval_result
 
 
-@pydra.main(base=ScriptConfig)
+# @pydra.main(base=ScriptConfig)
 def main(config: ScriptConfig):
 
-    print("Running with config", config)
+    print("Running with config", config.__dict__)
 
     # Fetch reference and kernel code
 
@@ -168,10 +169,16 @@ def main(config: ScriptConfig):
 
     print("[INFO] Evaluating kernel against reference code")
     # Evaluate kernel against reference code
+    # kernel_eval_result = evaluate_single_sample_src(
+    #     ref_arch_src=ref_arch_src,
+    #     kernel_src=kernel_src,
+    #     configs=config.to_dict(),
+    #     device=device
+    # )
     kernel_eval_result = evaluate_single_sample_src(
         ref_arch_src=ref_arch_src,
         kernel_src=kernel_src,
-        configs=config.to_dict(),
+        configs=config.__dict__,
         device=device
     )
     kernel_exec_time = kernel_eval_result.runtime
@@ -214,4 +221,5 @@ def main(config: ScriptConfig):
 
 
 if __name__ == "__main__":
-    main()
+    config = ScriptConfig()
+    main(config)

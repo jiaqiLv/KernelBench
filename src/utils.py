@@ -13,6 +13,7 @@ import math
 import os
 import json
 from tqdm import tqdm
+from typing import Union,List,Dict
 
 # API clients
 from together import Together
@@ -82,7 +83,7 @@ def set_gpu_arch(arch_list: list[str]):
     os.environ["TORCH_CUDA_ARCH_LIST"] = ";".join(arch_list)
 
 def query_server(
-    prompt: str | list[dict],  # string if normal prompt, list of dicts if chat prompt,
+    prompt: Union[str, List[Dict]],  # string if normal prompt, list of dicts if chat prompt,
     system_prompt: str = "You are a helpful assistant",  # only used for chat prompts
     temperature: float = 0.0,
     top_p: float = 1.0, # nucleus sampling
@@ -112,53 +113,52 @@ def query_server(
     - SGLang (Local Server)
     """
     # Select model and client based on arguments
-    match server_type:
-        case "sglang":
-            url = f"http://{server_address}:{server_port}"
-            client = OpenAI(
-                api_key=SGLANG_KEY, base_url=f"{url}/v1", timeout=None, max_retries=0
-            )
-            model = "default"
-        case "deepseek":
-            client = OpenAI(
-                api_key=DEEPSEEK_KEY,
-                base_url="https://api.deepseek.com",
-                timeout=10000000,
-                max_retries=3,
-            )
-            model = model_name
-            assert model in ["deepseek-chat", "deepseek-coder", "deepseek-reasoner"], "Only support deepseek-chat or deepseek-coder for now"
-            if not is_safe_to_send_to_deepseek(prompt):
-                raise RuntimeError("Prompt is too long for DeepSeek")
-        case "fireworks":
-            client = OpenAI(
-                api_key=FIREWORKS_API_KEY,
-                base_url="https://api.fireworks.ai/inference/v1",
-                timeout=10000000,
-                max_retries=3,
-            )
-            model = model_name
 
-        case "anthropic":
-            client = anthropic.Anthropic(
-                api_key=ANTHROPIC_KEY,
-            )
-            model = model_name
-        case "google":
-            genai.configure(api_key=GEMINI_KEY)
-            model = model_name
-        case "together":
-            client = Together(api_key=TOGETHER_KEY)
-            model = model_name
-        case "sambanova":
-            client = OpenAI(api_key=SAMBANOVA_API_KEY, base_url="https://api.sambanova.ai/v1")
-            model = model_name
-            
-        case "openai":
-            client = OpenAI(api_key=OPENAI_KEY)
-            model = model_name
-        case _:
-            raise NotImplementedError
+    if server_type == "sglang":
+        url = f"http://{server_address}:{server_port}"
+        client = OpenAI(
+            api_key=SGLANG_KEY, base_url=f"{url}/v1", timeout=None, max_retries=0
+        )
+        model = "default"
+    elif server_type == "deepseek":
+        client = OpenAI(
+            api_key=DEEPSEEK_KEY,
+            base_url="https://api.deepseek.com",
+            timeout=10000000,
+            max_retries=3,
+        )
+        model = model_name
+        assert model in ["deepseek-chat", "deepseek-coder", "deepseek-reasoner"], "Only support deepseek-chat or deepseek-coder for now"
+        if not is_safe_to_send_to_deepseek(prompt):
+            raise RuntimeError("Prompt is too long for DeepSeek")
+    elif server_type == "fireworks":
+        client = OpenAI(
+            api_key=FIREWORKS_API_KEY,
+            base_url="https://api.fireworks.ai/inference/v1",
+            timeout=10000000,
+            max_retries=3,
+        )
+        model = model_name
+    elif server_type == "anthropic":
+        client = anthropic.Anthropic(
+            api_key=ANTHROPIC_KEY,
+        )
+        model = model_name
+    elif server_type == "google":
+        genai.configure(api_key=GEMINI_KEY)
+        model = model_name
+    elif server_type == "together":
+        client = Together(api_key=TOGETHER_KEY)
+        model = model_name
+    elif server_type == "sambanova":
+        client = OpenAI(api_key=SAMBANOVA_API_KEY, base_url="https://api.sambanova.ai/v1")
+        model = model_name
+    elif server_type == "openai":
+        client = OpenAI(api_key=OPENAI_KEY)
+        model = model_name
+    else:
+        raise NotImplementedError
+
 
     if server_type != "google":
         assert client is not None, "Client is not set, cannot proceed to generations"
@@ -500,7 +500,7 @@ def extract_first_code(output_string: str, code_language_types: list[str]) -> st
     return None
 
 
-def extract_last_code(output_string: str, code_language_types: list[str]) -> str | None:
+def extract_last_code(output_string: str, code_language_types: list[str]) -> Union[str,None]:
     """
     Extract last code block from model output, specified by code_language_type
     """
